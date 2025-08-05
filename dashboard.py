@@ -28,26 +28,17 @@ except Exception as e:
 # --- Sidebar for Filters ---
 st.sidebar.header("Filter Options")
 
-## SESSION STATE: Add a feature to remember a user's favorite platform.
+# Session State Feature for Favorite Platform
 st.sidebar.subheader("Favorite Platform")
-
-# Initialize the favorite_platform in session state if it doesn't exist
 if 'favorite_platform' not in st.session_state:
     st.session_state.favorite_platform = "None"
-
-# Create a selectbox for the user to pick a platform
-# We'll add a "None" option to allow un-favoriting.
 platform_options = ["None"] + sorted(df['Platform'].unique())
-selected_favorite = st.sidebar.selectbox(
-    'Choose your favorite platform:',
-    options=platform_options
-)
-
-# A button to confirm and save the choice to session state
+selected_favorite = st.sidebar.selectbox('Choose your favorite platform:', options=platform_options)
 if st.sidebar.button("Set Favorite"):
     st.session_state.favorite_platform = selected_favorite
     st.sidebar.success(f"Favorite platform set to: {selected_favorite}")
 
+st.sidebar.subheader("Data Filters")
 # Get a list of unique genres for the multiselect widget
 genres = sorted(df['Genre'].unique())
 selected_genres = st.sidebar.multiselect(
@@ -67,14 +58,12 @@ selected_platforms = st.sidebar.multiselect(
 # Add a slider for selecting a range of years.
 min_year = df['Year'].min()
 max_year = df['Year'].max()
-
 selected_year_range = st.sidebar.slider(
     'Select Year Range:',
     min_value=min_year,
     max_value=max_year,
     value=(min_year, max_year) # Default to the full range
 )
-
 
 # Filter the DataFrame based on ALL user selections
 filtered_df = df[
@@ -86,52 +75,49 @@ filtered_df = df[
 
 # --- Main Page Content ---
 st.title("Video Game Sales Analysis Dashboard")
-
-## SESSION STATE: Display the remembered favorite platform.
 st.info(f"Your currently favorited platform is: **{st.session_state.favorite_platform}**")
 st.write("Use the filters on the left to explore the dataset.")
 
 # --- Display Metrics ---
 total_sales = filtered_df['Global_Sales'].sum()
 num_games = len(filtered_df)
-
 col1, col2 = st.columns(2)
 col1.metric("Total Global Sales (Millions)", f"${total_sales:,.2f}M")
 col2.metric("Number of Games Selected", f"{num_games:,}")
 
-# --- Display Charts ---
+## LAYOUT: Use st.tabs to organize the visualizations.
 st.header("Visualizations")
 
 if not filtered_df.empty:
-    ## TIME-SERIES: New chart to show sales trends over time.
-    st.subheader("Total Sales Over Time")
-    # Group the filtered data by year and sum the global sales.
-    sales_over_time = filtered_df.groupby('Year')['Global_Sales'].sum()
-    # Use Streamlit's built-in line chart function.
-    st.line_chart(sales_over_time)
+    # Create the tabs. The names in the list become the tab labels.
+    tab1, tab2, tab3 = st.tabs(["Sales by Genre", "Sales by Platform", "Sales Over Time"])
 
+    # Place each chart inside its own 'with' block for the corresponding tab.
+    with tab1:
+        st.subheader("Total Sales by Genre")
+        sales_by_genre = filtered_df.groupby('Genre')['Global_Sales'].sum().sort_values(ascending=False)
+        fig1, ax1 = plt.subplots(figsize=(10, 5))
+        sns.barplot(x=sales_by_genre.index, y=sales_by_genre.values, ax=ax1, palette="viridis")
+        ax1.set_ylabel("Global Sales (in Millions)")
+        ax1.set_xlabel("Genre")
+        plt.xticks(rotation=45, ha='right')
+        st.pyplot(fig1)
 
-    # Chart 1: Sales by Genre
-    st.subheader("Total Sales by Genre")
-    sales_by_genre = filtered_df.groupby('Genre')['Global_Sales'].sum().sort_values(ascending=False)
-    
-    fig1, ax1 = plt.subplots(figsize=(10, 5))
-    sns.barplot(x=sales_by_genre.index, y=sales_by_genre.values, ax=ax1, palette="viridis")
-    ax1.set_ylabel("Global Sales (in Millions)")
-    ax1.set_xlabel("Genre")
-    plt.xticks(rotation=45, ha='right')
-    st.pyplot(fig1)
+    with tab2:
+        st.subheader("Total Sales by Platform")
+        sales_by_platform = filtered_df.groupby('Platform')['Global_Sales'].sum().sort_values(ascending=False)
+        fig2, ax2 = plt.subplots(figsize=(10, 5))
+        sns.barplot(x=sales_by_platform.index, y=sales_by_platform.values, ax=ax2, palette="plasma")
+        ax2.set_ylabel("Global Sales (in Millions)")
+        ax2.set_xlabel("Platform")
+        plt.xticks(rotation=90)
+        st.pyplot(fig2)
 
-    # Chart 2: Sales by Platform
-    st.subheader("Total Sales by Platform")
-    sales_by_platform = filtered_df.groupby('Platform')['Global_Sales'].sum().sort_values(ascending=False)
-    
-    fig2, ax2 = plt.subplots(figsize=(10, 5))
-    sns.barplot(x=sales_by_platform.index, y=sales_by_platform.values, ax=ax2, palette="plasma")
-    ax2.set_ylabel("Global Sales (in Millions)")
-    ax2.set_xlabel("Platform")
-    plt.xticks(rotation=90)
-    st.pyplot(fig2)
+    with tab3:
+        st.subheader("Total Sales Over Time")
+        sales_over_time = filtered_df.groupby('Year')['Global_Sales'].sum()
+        st.line_chart(sales_over_time)
+
 else:
     st.warning("No data available for the selected filters. Please adjust your selections.")
 
