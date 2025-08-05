@@ -28,6 +28,26 @@ except Exception as e:
 # --- Sidebar for Filters ---
 st.sidebar.header("Filter Options")
 
+## SESSION STATE: Add a feature to remember a user's favorite platform.
+st.sidebar.subheader("Favorite Platform")
+
+# Initialize the favorite_platform in session state if it doesn't exist
+if 'favorite_platform' not in st.session_state:
+    st.session_state.favorite_platform = "None"
+
+# Create a selectbox for the user to pick a platform
+# We'll add a "None" option to allow un-favoriting.
+platform_options = ["None"] + sorted(df['Platform'].unique())
+selected_favorite = st.sidebar.selectbox(
+    'Choose your favorite platform:',
+    options=platform_options
+)
+
+# A button to confirm and save the choice to session state
+if st.sidebar.button("Set Favorite"):
+    st.session_state.favorite_platform = selected_favorite
+    st.sidebar.success(f"Favorite platform set to: {selected_favorite}")
+
 # Get a list of unique genres for the multiselect widget
 genres = sorted(df['Genre'].unique())
 selected_genres = st.sidebar.multiselect(
@@ -66,6 +86,9 @@ filtered_df = df[
 
 # --- Main Page Content ---
 st.title("Video Game Sales Analysis Dashboard")
+
+## SESSION STATE: Display the remembered favorite platform.
+st.info(f"Your currently favorited platform is: **{st.session_state.favorite_platform}**")
 st.write("Use the filters on the left to explore the dataset.")
 
 # --- Display Metrics ---
